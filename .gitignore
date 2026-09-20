@@ -1,0 +1,37 @@
+# ---- Build output ----------------------------------------------------------
+build/
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
+*.d
+
+# Linked binary (the Makefile writes it next to the sources)
+/lab1/lab1
+/lab1/build/x86/lab1_x86
+
+# Compiler / profiler leftovers
+*.dSYM/
+*.gcda
+*.gcno
+*.gcov
+*.su
+*.idb
+*.pdb
+perf.data*
+callgrind.out.*
+
+# ---- Course materials ------------------------------------------------------
+# Third-party PDFs (Intel AP-930, Drepper, TUM paper) and the lecturer's own
+# slides. Kept locally, not redistributed here.
+useful_docs/
+
+# ---- Editors and OS --------------------------------------------------------
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~

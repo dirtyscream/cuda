@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Лаб. 1 — как это устроено, простыми словами</title>
+<style>
+:root{
+  --ink:#16202b; --muted:#5d6e7e; --faint:#8a9aa8;
+  --accent:#0f5c8c; --accent2:#0d7a6f;
+  --soft:#eaf2f8; --rule:#d7e0e7; --code-bg:#f5f8fa; --code-rule:#dce5ec;
+  --warn:#9a5b06; --warn-bg:#fdf6e7; --warn-rule:#f0dcb0;
+  --ok:#14663f; --ok-bg:#ecf8f1; --ok-rule:#bfe4cf;
+}
+*{box-sizing:border-box}
+@page{ size:A4; margin:18mm 17mm; }
+html{-webkit-print-color-adjust:exact; print-color-adjust:exact;}
+body{margin:0; color:var(--ink);
+  font-family:"PT Serif",Georgia,"Times New Roman",serif;
+  font-size:11pt; line-height:1.62;}
+h1,h2,h3,.sans{font-family:"Helvetica Neue","PT Sans",Helvetica,Arial,sans-serif;}
+p{margin:0 0 3.5mm; orphans:3; widows:3;}
+ul{margin:0 0 3.5mm; padding-left:6mm} li{margin-bottom:2mm}
+code{font-family:"SF Mono",Menlo,Consolas,monospace; font-size:9.2pt; background:var(--code-bg);
+     border:1px solid var(--code-rule); border-radius:3px; padding:.4mm 1.2mm;}
+b,strong{font-weight:700}
+
+/* cover */
+.cover{height:250mm; display:flex; flex-direction:column; justify-content:center; page-break-after:always; text-align:center;}
+.cover .eyebrow{font-size:9pt; letter-spacing:.24em; text-transform:uppercase; color:var(--accent); font-weight:700;}
+.cover h1{font-size:30pt; line-height:1.16; margin:8mm 0 0; letter-spacing:-.02em;}
+.cover .sub{font-size:13.5pt; color:var(--muted); margin-top:6mm; font-family:"Helvetica Neue",Helvetica,sans-serif; font-weight:300;}
+.cover-rule{height:4px; width:70mm; margin:10mm auto; border-radius:2px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));}
+.cover .note{font-size:10pt; color:var(--faint); max-width:120mm; margin:0 auto;}
+
+/* steps */
+.step{page-break-before:always}
+.step:first-of-type{page-break-before:avoid}
+.step h2{font-size:17pt; margin:0 0 5mm; letter-spacing:-.015em; display:flex; align-items:baseline; gap:4mm;}
+.step h2 .n{display:inline-flex; align-items:center; justify-content:center;
+  min-width:11mm; height:11mm; border-radius:50%; background:var(--accent); color:#fff;
+  font-size:12pt; font-weight:700; flex:0 0 auto; transform:translateY(1.5mm);}
+h3{font-size:12pt; margin:7mm 0 2.5mm; color:#1d3448;}
+
+/* blocks */
+.box{border-radius:6px; padding:4mm 5mm; margin:4.5mm 0; page-break-inside:avoid;}
+.box .bt{font-family:"Helvetica Neue",Helvetica,sans-serif; font-weight:700; font-size:8.6pt;
+  letter-spacing:.12em; text-transform:uppercase; display:block; margin-bottom:2mm;}
+.box p:last-child{margin-bottom:0}
+.key{background:var(--soft); border:1px solid #c5dced;} .key .bt{color:var(--accent)}
+.warn{background:var(--warn-bg); border:1px solid var(--warn-rule);} .warn .bt{color:var(--warn)}
+.ok{background:var(--ok-bg); border:1px solid var(--ok-rule);} .ok .bt{color:var(--ok)}
+
+.analogy{border-left:3px solid var(--accent2); padding:1mm 0 1mm 5mm; margin:4mm 0; color:#33475a; font-style:italic;}
+
+table{width:100%; border-collapse:collapse; margin:4mm 0; font-size:9.6pt;
+  font-family:"Helvetica Neue",Helvetica,sans-serif;}
+thead{display:table-header-group}
+th{background:var(--soft); color:#123a56; text-align:left; font-weight:700; font-size:8.4pt;
+  letter-spacing:.05em; text-transform:uppercase; padding:2.4mm 3mm; border-bottom:1.5px solid var(--accent);}
+td{padding:2.4mm 3mm; border-bottom:1px solid var(--rule); vertical-align:top;}
+tr{page-break-inside:avoid}
+td.num,th.num{text-align:right; font-variant-numeric:tabular-nums; font-family:"SF Mono",Menlo,monospace; font-size:9pt;}
+.hl td{background:var(--ok-bg)!important; font-weight:700}
+
+figure{margin:6mm 0; page-break-inside:avoid; text-align:center}
+figure svg{max-width:100%; height:auto}
+figcaption{font-family:"Helvetica Neue",Helvetica,sans-serif; font-size:8.6pt; color:var(--muted); margin-top:2.5mm;}
+
+pre{background:var(--code-bg); border:1px solid var(--code-rule); border-left:3px solid var(--accent);
+  border-radius:4px; padding:3.5mm 4mm; margin:4mm 0; font-family:"SF Mono",Menlo,monospace;
+  font-size:8.8pt; line-height:1.5; white-space:pre-wrap; page-break-inside:avoid;}
+pre code{background:none;border:none;padding:0;font-size:inherit}
+pre .c{color:#6b7f8e; font-style:italic}
+pre .k{color:#0b5fa5; font-weight:600}
+
+.cheat{border:1px solid var(--rule); border-radius:6px; padding:3mm 4mm; margin-bottom:3mm; page-break-inside:avoid;}
+.cheat .q{font-family:"Helvetica Neue",Helvetica,sans-serif; font-weight:700; font-size:10pt; color:var(--accent); margin-bottom:1.2mm;}
+.cheat .a{font-size:10pt}
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div class="eyebrow">Лабораторная работа №1</div>
+  <h1>Как это устроено,<br>простыми словами</h1>
+  <div class="sub">Короткое введение — семь шагов от нуля</div>
+  <div class="cover-rule"></div>
+  <p class="note">Здесь только суть: что просят сделать, почему это работает и что отвечать на
+  защите. Подробный разбор с формулами, дизассемблером и ссылками на источники — в отдельном
+  документе.</p>
+</section>
+
+<!-- 1 -->
+<section class="step">
+<h2><span class="n">1</span>Что вообще просят сделать</h2>
+
+<p>Нужно перемножить две матрицы. Но не одним способом, а <strong>тремя</strong>, и сравнить их
+между собой:</p>
+
+<table>
+<thead><tr><th style="width:30%">Версия</th><th>Что это</th></tr></thead>
+<tbody>
+<tr><td>Скалярная</td><td>обычный код, векторизация выключена — «медленный эталон»</td></tr>
+<tr><td><strong>C1</strong> — автоматическая</td><td>тот же обычный код, но компилятор сам ускоряет его как умеет</td></tr>
+<tr><td><strong>C2</strong> — ручная</td><td>мы сами пишем ускоренную версию на специальных командах процессора</td></tr>
+</tbody>
+</table>
+
+<p>И доказать две вещи: что <strong>C1 и C2 дают абсолютно одинаковый результат</strong>, и что
+<strong>наша ручная версия не медленнее автоматической</strong>.</p>
+
+<h3>Матрицы не простые, а блочные</h3>
+
+<p>Обычная матрица — таблица чисел. Здесь каждая клетка большой таблицы — это сама маленькая
+таблица 10 × 10. Как коробка с конфетами: большая коробка 400 × 400 ячеек, и в каждой ячейке —
+коробочка поменьше на 100 конфет.</p>
+
+<figure>
+<svg viewBox="0 0 560 190" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica Neue,Helvetica,sans-serif">
+  <defs><pattern id="gg" width="20" height="20" patternUnits="userSpaceOnUse">
+    <rect width="20" height="20" fill="#fff" stroke="#9db6c8" stroke-width="1"/></pattern>
+    <pattern id="gs" width="14" height="14" patternUnits="userSpaceOnUse">
+    <rect width="14" height="14" fill="#eaf2f8" stroke="#5a92b8" stroke-width="1"/></pattern></defs>
+  <rect x="20" y="30" width="140" height="100" fill="url(#gg)" stroke="#0f5c8c" stroke-width="1.8"/>
+  <text x="90" y="20" text-anchor="middle" font-size="11">большая матрица A</text>
+  <rect x="60" y="70" width="20" height="20" fill="#cfe4f2" stroke="#0f5c8c" stroke-width="1.8"/>
+  <path d="M60 90 L230 155 M80 90 L286 155" stroke="#5d6e7e" stroke-width=".9" stroke-dasharray="3 2" fill="none"/>
+  <rect x="230" y="99" width="56" height="56" fill="url(#gs)" stroke="#0f5c8c" stroke-width="1.8"/>
+  <text x="258" y="174" text-anchor="middle" font-size="10" fill="#0f5c8c" font-weight="700">блок 10 × 10</text>
+  <text x="258" y="78" text-anchor="middle" font-size="10" fill="#5d6e7e">одна клетка —</text>
+  <text x="258" y="92" text-anchor="middle" font-size="10" fill="#5d6e7e">это тоже матрица</text>
+  <text x="352" y="70" font-size="10.5" fill="#16202b">400 × 400 блоков,</text>
+  <text x="352" y="88" font-size="10.5" fill="#16202b">в каждом 10 × 10 чисел</text>
+  <text x="352" y="112" font-size="10.5" fill="#0d7a6f" font-weight="700">= 4000 × 4000 чисел</text>
+  <text x="352" y="130" font-size="10.5" fill="#5d6e7e">122 МБ на матрицу</text>
+</svg>
+</figure>
+
+<div class="box key">
+<span class="bt">Зачем такая странная постановка</span>
+<p>Блочность — не каприз преподавателя. Как мы увидим на шаге&nbsp;4, работать с матрицей по
+маленьким кусочкам <strong>в разы быстрее</strong>, чем целиком. Условие задачи просто заставляет
+сразу написать правильно.</p>
+</div>
+
+<h3>Чего делать нельзя</h3>
+<ul>
+<li><strong>Транспонировать</strong> матрицы (переворачивать строки в столбцы) — а это самый
+очевидный приём, и без него придётся думать.</li>
+<li>Использовать <code>clock()</code> и <code>time()</code> для замера — они слишком грубые.</li>
+<li>Печатать куски матриц на экран.</li>
+</ul>
+</section>
+
+<!-- 2 -->
+<section class="step">
+<h2><span class="n">2</span>Что такое векторизация</h2>
+
+<p>Обычная команда процессора складывает <strong>два числа</strong> и получает одно. Но внутри
+процессора есть широкие регистры — «ячейки» по 128 бит. В такую ячейку помещается не одно число, а
+<strong>два</strong> числа типа <code>double</code>. И есть команды, которые складывают сразу обе
+пары за один раз.</p>
+
+<div class="analogy">Это как поливать грядку: можно из одной лейки по одному ростку, а можно взять
+трубу с двумя носиками и поливать два ростка одновременно. Усилие то же, скорость вдвое выше.</div>
+
+<figure>
+<svg viewBox="0 0 540 120" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica Neue,Helvetica,sans-serif">
+  <text x="0" y="14" font-size="10" font-weight="700" fill="#5d6e7e">ОБЫЧНАЯ КОМАНДА</text>
+  <rect x="0" y="26" width="42" height="24" fill="#eaf2f8" stroke="#0f5c8c"/><text x="21" y="42" text-anchor="middle" font-size="10">a</text>
+  <rect x="0" y="56" width="42" height="24" fill="#eaf2f8" stroke="#0f5c8c"/><text x="21" y="72" text-anchor="middle" font-size="10">b</text>
+  <text x="56" y="60" font-size="15" fill="#5d6e7e">→</text>
+  <rect x="78" y="41" width="42" height="24" fill="#cfeee7" stroke="#0d7a6f"/><text x="99" y="57" text-anchor="middle" font-size="10">c</text>
+  <text x="0" y="100" font-size="9.5" fill="#8a9aa8">1 результат за команду</text>
+  <line x1="170" y1="6" x2="170" y2="112" stroke="#d7e0e7" stroke-width="1.5"/>
+  <text x="196" y="14" font-size="10" font-weight="700" fill="#0f5c8c">ВЕКТОРНАЯ КОМАНДА</text>
+  <rect x="196" y="26" width="42" height="24" fill="#eaf2f8" stroke="#0f5c8c"/><text x="217" y="42" text-anchor="middle" font-size="10">a₀</text>
+  <rect x="240" y="26" width="42" height="24" fill="#eaf2f8" stroke="#0f5c8c"/><text x="261" y="42" text-anchor="middle" font-size="10">a₁</text>
+  <rect x="196" y="56" width="42" height="24" fill="#eaf2f8" stroke="#0f5c8c"/><text x="217" y="72" text-anchor="middle" font-size="10">b₀</text>
+  <rect x="240" y="56" width="42" height="24" fill="#eaf2f8" stroke="#0f5c8c"/><text x="261" y="72" text-anchor="middle" font-size="10">b₁</text>
+  <text x="296" y="60" font-size="15" fill="#5d6e7e">→</text>
+  <rect x="318" y="41" width="42" height="24" fill="#cfeee7" stroke="#0d7a6f"/><text x="339" y="57" text-anchor="middle" font-size="10">c₀</text>
+  <rect x="362" y="41" width="42" height="24" fill="#cfeee7" stroke="#0d7a6f"/><text x="383" y="57" text-anchor="middle" font-size="10">c₁</text>
+  <text x="196" y="100" font-size="9.5" fill="#0d7a6f" font-weight="700">2 результата за ту же команду</text>
+  <rect x="424" y="26" width="116" height="54" fill="#fdf6e7" stroke="#f0dcb0" rx="4"/>
+  <text x="482" y="48" text-anchor="middle" font-size="10" fill="#9a5b06">потолок ускорения</text>
+  <text x="482" y="68" text-anchor="middle" font-size="16" font-weight="700" fill="#9a5b06">2×</text>
+</svg>
+</figure>
+
+<p>Набор таких команд называется <strong>SSE2</strong>. Отсюда сразу понятно главное число работы:
+<code>double</code> занимает 64 бита, в регистр на 128 бит их влезает два, значит
+<strong>быстрее чем в 2 раза стать невозможно</strong>. (Для <code>float</code> влезло бы четыре, и
+потолок был бы 4×.)</p>
+
+<h3>Кто это делает — мы или компилятор</h3>
+<p>Компилятор умеет сам находить подходящие циклы и переписывать их на векторные команды. Это и есть
+версия <strong>C1</strong>. А в версии <strong>C2</strong> мы пишем векторные команды руками.
+Задание требует обе, чтобы сравнить: справился ли компилятор так же хорошо, как человек.</p>
+
+<div class="box warn">
+<span class="bt">Наша особенность</span>
+<p>SSE2 — это команды процессоров Intel и AMD. Наш компьютер на Apple M5, у него другая
+архитектура, и команд SSE2 в нём <strong>физически нет</strong>. Мы обошли это библиотекой
+<code>sse2neon</code>: пишем код настоящими командами SSE2, а она при сборке заменяет каждую на
+точный аналог из набора NEON, который у M5 есть. Получается честный SSE2-код, который работает.</p>
+</div>
+</section>
+
+<!-- 3 -->
+<section class="step">
+<h2><span class="n">3</span>Почему процессор всё время ждёт</h2>
+
+<p>Кажется, что программа тормозит из-за вычислений. На самом деле процессор считает очень быстро,
+а вот <strong>достать числа из памяти — медленно</strong>. Настолько медленно, что почти всё время
+он просто ждёт.</p>
+
+<p>Чтобы не ждать, рядом с процессором ставят маленькую быструю память — <strong>кэш</strong>.</p>
+
+<figure>
+<svg viewBox="0 0 540 150" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica Neue,Helvetica,sans-serif">
+  <rect x="150" y="10" width="180" height="28" fill="#0f5c8c"/>
+  <text x="240" y="29" text-anchor="middle" font-size="11" fill="#fff" font-weight="700">регистры</text>
+  <text x="344" y="29" font-size="10" fill="#5d6e7e">мгновенно · пара десятков чисел</text>
+
+  <rect x="120" y="42" width="240" height="30" fill="#2b86bd"/>
+  <text x="240" y="62" text-anchor="middle" font-size="11" fill="#fff" font-weight="700">кэш L1</text>
+  <text x="374" y="62" font-size="10" fill="#5d6e7e">~3 такта · 64 КБ</text>
+
+  <rect x="90" y="76" width="300" height="30" fill="#6bacd2"/>
+  <text x="240" y="96" text-anchor="middle" font-size="11" fill="#fff" font-weight="700">кэш L2</text>
+  <text x="404" y="96" font-size="10" fill="#5d6e7e">~15 тактов · 6 МБ</text>
+
+  <rect x="40" y="110" width="400" height="32" fill="#c6dced"/>
+  <text x="240" y="131" text-anchor="middle" font-size="11" fill="#16202b" font-weight="700">оперативная память</text>
+  <text x="454" y="131" font-size="10" fill="#9a5b06" font-weight="700">~250 тактов</text>
+</svg>
+<figcaption>Чем быстрее память — тем её меньше. Задача программиста: почаще попадать в верхние строчки.</figcaption>
+</figure>
+
+<div class="analogy">Регистры — это то, что у вас в руках. Кэш — стол. Оперативная память — склад в
+соседнем здании. Сходить на склад в сто раз дольше, чем взять со стола.</div>
+
+<h3>Память выдаётся не по одному числу</h3>
+
+<p>Важная деталь: из памяти нельзя забрать одно число. Она отдаёт данные <strong>кусками по 128
+байт</strong> — это называется кэш-линия. В такой кусок помещается 16 чисел <code>double</code>.</p>
+
+<p>Значит, есть два способа работать:</p>
+
+<table>
+<thead><tr><th style="width:50%">Если взяли кусок и использовали все 16 чисел</th><th>Если из куска нужно было одно число</th></tr></thead>
+<tbody>
+<tr><td>один поход «на склад» на 16 полезных чисел — отлично</td><td>один поход на 1 полезное число, остальные 15 выброшены — <strong>в 16 раз хуже</strong></td></tr>
+</tbody>
+</table>
+
+<div class="box key">
+<span class="bt">Отсюда всё и следует</span>
+<p>Быстрая программа — это та, которая читает память <strong>подряд</strong> и использует
+принесённое <strong>целиком</strong>. Не «считает меньше», а «меньше бегает на склад».</p>
+</div>
+</section>
+
+<!-- 4 -->
+<section class="step">
+<h2><span class="n">4</span>Почему блоки — это быстро</h2>
+
+<p>Посмотрим, как умножают матрицы «в лоб». Чтобы получить одно число результата, надо взять
+<strong>строку</strong> первой матрицы и <strong>столбец</strong> второй.</p>
+
+<p>И вот здесь ловушка. В памяти матрица лежит строками: сначала вся первая строка, за ней вся
+вторая. Поэтому идти по строке — значит читать подряд, это быстро. А идти по столбцу — значит
+прыгать через всю строку, каждый раз в новое место.</p>
+
+<figure>
+<svg viewBox="0 0 540 175" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica Neue,Helvetica,sans-serif">
+  <text x="0" y="13" font-size="10.5" font-weight="700" fill="#0d7a6f">ПО СТРОКЕ — БЫСТРО</text>
+  <g>
+    <rect x="0" y="22" width="220" height="18" fill="#f4f6f8" stroke="#d7e0e7"/>
+    <rect x="0" y="22" width="110" height="18" fill="#cfeee7" stroke="#0d7a6f" stroke-width="1.5"/>
+    <text x="55" y="35" text-anchor="middle" font-size="9" fill="#0d7a6f" font-weight="700">взяли подряд</text>
+    <text x="232" y="35" font-size="9.5" fill="#5d6e7e">один поход — 16 нужных чисел</text>
+  </g>
+  <text x="0" y="66" font-size="10.5" font-weight="700" fill="#9a5b06">ПО СТОЛБЦУ — МЕДЛЕННО</text>
+  <g>
+    <rect x="0" y="75" width="470" height="18" fill="#f4f6f8" stroke="#d7e0e7"/>
+    <rect x="0"   y="75" width="14" height="18" fill="#fbe9c8" stroke="#9a5b06" stroke-width="1.4"/>
+    <rect x="114" y="75" width="14" height="18" fill="#fbe9c8" stroke="#9a5b06" stroke-width="1.4"/>
+    <rect x="228" y="75" width="14" height="18" fill="#fbe9c8" stroke="#9a5b06" stroke-width="1.4"/>
+    <rect x="342" y="75" width="14" height="18" fill="#fbe9c8" stroke="#9a5b06" stroke-width="1.4"/>
+    <rect x="456" y="75" width="14" height="18" fill="#fbe9c8" stroke="#9a5b06" stroke-width="1.4"/>
+    <path d="M14 84 L114 84 M128 84 L228 84 M242 84 L342 84 M356 84 L456 84"
+          stroke="#9a5b06" stroke-width="1" stroke-dasharray="4 3"/>
+    <text x="235" y="110" text-anchor="middle" font-size="9.5" fill="#9a5b06" font-weight="700">каждое число — отдельный поход, 15 из 16 принесённых выброшены</text>
+  </g>
+  <rect x="0" y="126" width="470" height="40" fill="#ecf8f1" stroke="#bfe4cf" rx="4"/>
+  <text x="235" y="143" text-anchor="middle" font-size="10" fill="#14663f" font-weight="700">Очевидное решение — перевернуть вторую матрицу, чтобы столбцы стали строками.</text>
+  <text x="235" y="158" text-anchor="middle" font-size="10" fill="#9a5b06" font-weight="700">Но по условию задачи это запрещено.</text>
+</svg>
+</figure>
+
+<h3>Что делаем вместо этого</h3>
+
+<p>Раз переворачивать нельзя — уменьшим задачу. Вместо того чтобы возить числа со «склада» туда-сюда
+миллионы раз, мы берём <strong>один маленький блок 10 × 10 и обсчитываем его целиком</strong>, пока
+он лежит в кэше.</p>
+
+<p>Блок 10 × 10 из <code>double</code> — это всего 800 байт. Кэш L1 — 64 000 байт. Три блока (два
+исходных и результат) занимают 2400 байт: помещаются с запасом в двадцать семь раз. Пока мы считаем
+блок, <strong>на «склад» ходить вообще не нужно</strong>.</p>
+
+<p>И ещё одна хитрость: мы храним блоки в памяти <strong>подряд, каждый целиком</strong>. Тогда
+блок — это просто 800 байт, идущих друг за другом, и все принесённые куски памяти используются
+полностью.</p>
+
+<div class="box ok">
+<span class="bt">Насколько это помогает</span>
+<p>Очень сильно. Даже <strong>без всякой векторизации</strong> блочная версия работает в разы
+быстрее наивной, потому что процессор перестаёт ждать память. Векторизация добавляет свои 2×
+уже сверху.</p>
+</div>
+</section>
+
+<!-- 5 -->
+<section class="step">
+<h2><span class="n">5</span>Как умножать без переворота матрицы</h2>
+
+<p>Внутри блока проблема остаётся та же: формула требует строку × столбец. Решение придумали в Intel
+ещё в 1999 году, и оно неожиданно простое — <strong>надо перевернуть не матрицу, а сам порядок
+вычислений</strong>.</p>
+
+<p>Вместо «возьмём строку и столбец, получим одно число» делаем так: <strong>берём одно число из
+первой матрицы и умножаем его на целую строку второй</strong>, а результат добавляем в строку
+ответа.</p>
+
+<figure>
+<svg viewBox="0 0 540 172" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica Neue,Helvetica,sans-serif">
+  <text x="0" y="13" font-size="10" font-weight="700" fill="#5d6e7e">1 · берём ОДНО число из A и копируем его в обе половины регистра</text>
+  <rect x="0" y="22" width="34" height="24" fill="#cfe4f2" stroke="#0f5c8c" stroke-width="1.5"/>
+  <text x="17" y="39" text-anchor="middle" font-size="10" font-weight="700">a</text>
+  <text x="48" y="39" font-size="16" fill="#5d6e7e">→</text>
+  <rect x="72" y="22" width="34" height="24" fill="#cfe4f2" stroke="#0f5c8c" stroke-width="1.5"/>
+  <rect x="106" y="22" width="34" height="24" fill="#cfe4f2" stroke="#0f5c8c" stroke-width="1.5"/>
+  <text x="89" y="39" text-anchor="middle" font-size="10">a</text><text x="123" y="39" text-anchor="middle" font-size="10">a</text>
+
+  <text x="0" y="70" font-size="10" font-weight="700" fill="#5d6e7e">2 · умножаем на СТРОКУ из B — она лежит подряд, читается быстро</text>
+  <g font-size="9" text-anchor="middle">
+    <rect x="0"   y="79" width="94" height="24" fill="#eaf2f8" stroke="#0f5c8c" stroke-width="1.4"/><text x="47"  y="95">b₀ b₁</text>
+    <rect x="94"  y="79" width="94" height="24" fill="#eaf2f8" stroke="#0f5c8c" stroke-width="1.4"/><text x="141" y="95">b₂ b₃</text>
+    <rect x="188" y="79" width="94" height="24" fill="#eaf2f8" stroke="#0f5c8c" stroke-width="1.4"/><text x="235" y="95">b₄ b₅</text>
+    <rect x="282" y="79" width="94" height="24" fill="#eaf2f8" stroke="#0f5c8c" stroke-width="1.4"/><text x="329" y="95">b₆ b₇</text>
+    <rect x="376" y="79" width="94" height="24" fill="#eaf2f8" stroke="#0f5c8c" stroke-width="1.4"/><text x="423" y="95">b₈ b₉</text>
+  </g>
+  <text x="482" y="95" font-size="9.5" fill="#5d6e7e">10 чисел =</text>
+  <text x="482" y="107" font-size="9.5" fill="#5d6e7e">5 регистров</text>
+
+  <text x="0" y="128" font-size="10" font-weight="700" fill="#5d6e7e">3 · прибавляем к строке ответа, которая всё время лежит в регистрах</text>
+  <g font-size="9" text-anchor="middle">
+    <rect x="0"   y="137" width="94" height="24" fill="#cfeee7" stroke="#0d7a6f" stroke-width="1.4"/><text x="47"  y="153">c₀ c₁</text>
+    <rect x="94"  y="137" width="94" height="24" fill="#cfeee7" stroke="#0d7a6f" stroke-width="1.4"/><text x="141" y="153">c₂ c₃</text>
+    <rect x="188" y="137" width="94" height="24" fill="#cfeee7" stroke="#0d7a6f" stroke-width="1.4"/><text x="235" y="153">c₄ c₅</text>
+    <rect x="282" y="137" width="94" height="24" fill="#cfeee7" stroke="#0d7a6f" stroke-width="1.4"/><text x="329" y="153">c₆ c₇</text>
+    <rect x="376" y="137" width="94" height="24" fill="#cfeee7" stroke="#0d7a6f" stroke-width="1.4"/><text x="423" y="153">c₈ c₉</text>
+  </g>
+</svg>
+<figcaption>Столбцы не нужны вообще — а значит, и переворачивать нечего.</figcaption>
+</figure>
+
+<p>Математически результат ровно тот же — просто слагаемые собираются в другом порядке следования по
+памяти. Зато все чтения идут подряд, и запрет на транспонирование перестаёт мешать: он нам больше
+не нужен.</p>
+
+<p>Так выглядит внутренний цикл ручной версии:</p>
+<pre><span class="c">// a — одно число из A, размноженное на обе половины регистра</span>
+<span class="c">// дальше пять раз: взять два числа из строки B, умножить, прибавить</span>
+acc0 = _mm_add_pd(acc0, _mm_mul_pd(a, _mm_loadu_pd(row_b + 0)));
+acc1 = _mm_add_pd(acc1, _mm_mul_pd(a, _mm_loadu_pd(row_b + 2)));
+acc2 = _mm_add_pd(acc2, _mm_mul_pd(a, _mm_loadu_pd(row_b + 4)));
+acc3 = _mm_add_pd(acc3, _mm_mul_pd(a, _mm_loadu_pd(row_b + 6)));
+acc4 = _mm_add_pd(acc4, _mm_mul_pd(a, _mm_loadu_pd(row_b + 8)));</pre>
+
+<p>Пять «накопителей» <code>acc0…acc4</code> держат всю строку ответа прямо в регистрах процессора.
+Их пять, а не один, ещё и потому, что сложение занимает несколько тактов: пока считается первое,
+процессор успевает начать остальные четыре, и конвейер не простаивает.</p>
+</section>
+
+<!-- 6 -->
+<section class="step">
+<h2><span class="n">6</span>Почему результаты совпадают до бита</h2>
+
+<p>Задание требует, чтобы C1 и C2 совпали <strong>полностью</strong>. Не «примерно», не «с точностью
+до сотых» — а байт в байт. И это не придирка, потому что с дробными числами так бывает не всегда.</p>
+
+<div class="analogy">Компьютер хранит дробные числа приближённо — как если бы вы записывали все суммы,
+округляя до копейки. Поэтому 0,1 + 0,2 у него не равно ровно 0,3. И если сложить те же слагаемые в
+другом порядке, ошибки округления лягут иначе и ответ отличится в последнем знаке.</div>
+
+<p>Отсюда правило: <strong>переставлять порядок сложений нельзя</strong>. Значит, ручная версия не
+имеет права «оптимизировать» порядок циклов — иначе она даст чуть-чуть другой результат и проверка
+провалится.</p>
+
+<h3>Три вещи, которые это гарантируют</h3>
+
+<table>
+<thead><tr><th style="width:34%">Что сделано</th><th>Зачем</th></tr></thead>
+<tbody>
+<tr><td>Одинаковый порядок сложений</td><td>Обе версии складывают слагаемые в одной и той же последовательности. Каждая половинка векторного регистра повторяет ровно то, что делает обычный код.</td></tr>
+<tr><td>Запрет «слитой» команды умножить-и-сложить</td><td>У процессора есть команда FMA, которая делает умножение и сложение за раз и округляет <strong>один</strong> раз вместо двух. Быстрее — но ответ отличается в последнем бите. Мы её запретили явным указанием компилятору.</td></tr>
+<tr><td>Только целые числа от −8 до 8</td><td>Матрицы заполняются небольшими целыми. Сумма таких произведений остаётся целым числом, а целые числа компьютер хранит <strong>точно</strong>. Округления просто не возникает.</td></tr>
+</tbody>
+</table>
+
+<div class="box ok">
+<span class="bt">Что это даёт</span>
+<p>Первые два пункта делают совпадение гарантированным. Третий делает проверку <strong>осмысленной</strong>:
+раз округления нет вовсе, то любое расхождение — это настоящая ошибка в алгоритме, а не «не повезло с
+округлением». Поэтому сравнение делается самой строгой функцией — побайтовым <code>memcmp</code>.</p>
+</div>
+</section>
+
+<!-- 7 -->
+<section class="step">
+<h2><span class="n">7</span>Что получилось</h2>
+
+<p>Матрицы 4000 × 4000 чисел <code>double</code>, 122 МБ каждая, 128 миллиардов операций.</p>
+
+<table>
+<thead><tr><th>Версия</th><th class="num">Время</th><th class="num">Ускорение</th></tr></thead>
+<tbody>
+<tr><td>скалярная (векторизация выключена)</td><td class="num">7,48 с</td><td class="num">1,00×</td></tr>
+<tr><td><strong>C1</strong> — автоматическая</td><td class="num">3,84 с</td><td class="num">1,95×</td></tr>
+<tr class="hl"><td><strong>C2</strong> — ручная, SSE2</td><td class="num">3,80 с</td><td class="num">1,97×</td></tr>
+</tbody>
+</table>
+
+<p>Напомним потолок из шага 2: для <code>double</code> быстрее 2× стать нельзя. Мы получили
+<strong>1,97×</strong> — то есть выжали 98 % возможного. Ручная версия ещё и чуть-чуть обогнала
+автоматическую, как и требовало задание.</p>
+
+<h3>Как доказать, что векторизация правда работает</h3>
+
+<p>Можно заглянуть в машинный код, который выдал компилятор, и просто посчитать команды:</p>
+
+<table>
+<thead><tr><th>Файл</th><th class="num">Векторных команд</th><th class="num">Обычных команд</th></tr></thead>
+<tbody>
+<tr><td>автоматическая версия</td><td class="num">100</td><td class="num">0</td></tr>
+<tr><td>ручная SSE2-версия</td><td class="num">100</td><td class="num">0</td></tr>
+<tr><td>скалярная версия</td><td class="num">0</td><td class="num">200</td></tr>
+</tbody>
+</table>
+
+<p>Ровно вдвое меньше команд на ту же работу — потому что каждая обрабатывает два числа вместо
+одного. Лучшего доказательства не придумать.</p>
+
+<div class="box warn">
+<span class="bt">Неожиданная находка — её стоит рассказать на защите</span>
+<p>В методичке отдельным пунктом стоит вопрос: «как отключить векторизацию???» Напрашивается флаг
+<code>-fno-vectorize</code>. Мы проверили — <strong>он не делает ничего</strong>, код остаётся
+векторным.</p>
+<p>Причина в том, что векторизаторов у компилятора <strong>два</strong>. Первый работает с циклами.
+Но наш внутренний цикл короткий, всего 10 шагов, и компилятор разворачивает его в прямую цепочку
+команд ещё раньше — циклу просто неоткуда взяться. Зато вступает второй, <strong>SLP</strong>, который
+склеивает подряд идущие одиночные операции в векторные. Его гасит уже другой флаг —
+<code>-fno-slp-vectorize</code>.</p>
+<p>Вывод: нужны <strong>оба</strong> флага. Если поставить только первый, «скалярный» эталон на самом
+деле останется векторным, и все замеры ускорения окажутся враньём.</p>
+</div>
+</section>
+
+<!-- cheat sheet -->
+<section class="step">
+<h2><span class="n">✓</span>Шпаргалка на защиту</h2>
+
+<div class="cheat"><div class="q">Почему нельзя транспонировать и что вместо?</div>
+<div class="a">Это лишняя память и лишний проход копирования. Вместо — схема Intel: одно число из A
+умножаем на целую строку B. Столбцы не нужны.</div></div>
+
+<div class="cheat"><div class="q">Почему для double ускорение меньше, чем для float?</div>
+<div class="a">В регистр 128 бит влезает 2 числа double против 4 float. Потолок 2× против 4×.</div></div>
+
+<div class="cheat"><div class="q">Зачем блоки?</div>
+<div class="a">Блок 800 байт помещается в кэш L1 (64 КБ) с запасом. Пока считаем блок, в медленную
+память не ходим вообще.</div></div>
+
+<div class="cheat"><div class="q">Почему важен размер кэш-линии?</div>
+<div class="a">Память отдаёт данные кусками по 128 байт. Блоки лежат подряд, поэтому каждый кусок
+используется целиком, а не на 6 %.</div></div>
+
+<div class="cheat"><div class="q">Как доказали векторизацию?</div>
+<div class="a">Дизассемблер: 100 векторных команд против 200 обычных на тот же объём работы. Плюс
+отчёты компилятора.</div></div>
+
+<div class="cheat"><div class="q">Как отключили векторизацию?</div>
+<div class="a">Тот же файл собирается дважды, для эталона добавляются <code>-fno-vectorize</code> и
+<code>-fno-slp-vectorize</code>. Оба обязательны — первый сам по себе бесполезен.</div></div>
+
+<div class="cheat"><div class="q">Почему C1 и C2 совпали побитово?</div>
+<div class="a">Одинаковый порядок сложений, запрещён FMA, и данные — целые от −8 до 8, для которых
+округления не бывает.</div></div>
+
+<div class="cheat"><div class="q">Почему не используете FMA, он же быстрее?</div>
+<div class="a">Он округляет один раз вместо двух и даёт другой результат, а совпадение обязательно.
+И в самом SSE2 команды FMA нет.</div></div>
+
+<div class="cheat"><div class="q">Почему запрещён clock()?</div>
+<div class="a">Реальная точность около 10 мс, и на разных системах он означает разное. Используем
+<code>clock_gettime</code> и аппаратный счётчик.</div></div>
+
+<div class="cheat"><div class="q">Что такое rdtsc и где результат?</div>
+<div class="a">Счётчик тактов процессора, результат в паре регистров <code>edx:eax</code>. На нашем
+ARM его нет, вместо него системный счётчик <code>cntvct_el0</code>.</div></div>
+
+<div class="cheat"><div class="q">Где узкое место сейчас?</div>
+<div class="a">В вычислениях, не в памяти: блоки уже решили проблему памяти. Дальше мешают запрет FMA
+(осознанный) и длина цепочки сложений.</div></div>
+
+</section>
+
+</body>
+</html>
