@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Лабораторная работа №2 — Оптимизация доступа в кэш</title>
+<style>
+:root{
+  --ink:#16202b; --muted:#5d6e7e; --faint:#8a9aa8;
+  --accent:#0f5c8c; --accent2:#0d7a6f;
+  --soft:#eaf2f8; --soft2:#e8f5f2;
+  --rule:#d7e0e7; --code-bg:#f5f8fa; --code-rule:#dce5ec;
+  --warn:#9a5b06; --warn-bg:#fdf6e7; --warn-rule:#f0dcb0;
+  --ok:#14663f; --ok-bg:#ecf8f1; --ok-rule:#bfe4cf;
+}
+*{box-sizing:border-box}
+@page{ size:A4; margin:17mm 15mm 16mm 15mm; }
+html{-webkit-print-color-adjust:exact; print-color-adjust:exact;}
+body{
+  margin:0; color:var(--ink);
+  font-family:"PT Serif",Georgia,"Times New Roman",serif;
+  font-size:10.2pt; line-height:1.56; text-rendering:optimizeLegibility;
+}
+h1,h2,h3,h4,.sans{font-family:"Helvetica Neue","PT Sans",Helvetica,Arial,sans-serif;}
+
+/* ---------- title page ---------- */
+.cover{height:252mm; display:flex; flex-direction:column; justify-content:space-between; page-break-after:always;}
+.cover-top{padding-top:8mm}
+.cover .eyebrow{font-size:8.5pt; letter-spacing:.22em; text-transform:uppercase; color:var(--accent); font-weight:700;}
+.cover h1{font-size:30pt; line-height:1.14; margin:7mm 0 0; letter-spacing:-.015em; font-weight:700;}
+.cover .sub{font-size:13pt; color:var(--muted); margin-top:5mm; font-family:"Helvetica Neue",Helvetica,sans-serif; font-weight:300;}
+.cover-rule{height:4px; background:linear-gradient(90deg,var(--accent) 0%,var(--accent2) 55%,#9ec9c2 100%); margin:9mm 0 0; border-radius:2px;}
+.cover-meta{display:grid; grid-template-columns:1fr 1fr; gap:6mm 10mm; margin-top:auto; padding-top:10mm; border-top:1px solid var(--rule);}
+.cover-meta div{font-size:9pt}
+.cover-meta .k{font-family:"Helvetica Neue",Helvetica,sans-serif; font-size:7.6pt; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); display:block; margin-bottom:1.2mm;}
+.cover-abstract{margin-top:12mm; font-size:10.4pt; color:#2d3c4a; border-left:3px solid var(--accent); padding-left:6mm;}
+
+/* ---------- structure ---------- */
+h2{font-size:15.5pt; margin:11mm 0 3.5mm; padding-bottom:2mm; border-bottom:2px solid var(--accent);
+   letter-spacing:-.01em; page-break-after:avoid;}
+h2 .num{color:var(--accent); font-weight:700; margin-right:2.5mm;}
+h3{font-size:11.6pt; margin:6.5mm 0 2mm; color:#1d3448; page-break-after:avoid;}
+h4{font-size:10pt; margin:5mm 0 1.5mm; color:var(--accent); page-break-after:avoid;
+   font-weight:700; letter-spacing:.01em;}
+p{margin:0 0 3mm; orphans:3; widows:3;}
+ul,ol{margin:0 0 3mm; padding-left:5.5mm}
+li{margin-bottom:1.4mm; orphans:2; widows:2;}
+a{color:var(--accent); text-decoration:none}
+strong{font-weight:700}
+code{font-family:"SF Mono",Menlo,Consolas,monospace; font-size:8.6pt; background:var(--code-bg);
+     border:1px solid var(--code-rule); border-radius:3px; padding:.4mm 1.1mm;}
+.sec{page-break-inside:auto}
+
+/* ---------- TOC ---------- */
+.toc{page-break-after:always}
+.toc ol{list-style:none; padding:0; margin:0; counter-reset:toc}
+.toc li{counter-increment:toc; padding:1.9mm 0; border-bottom:1px dotted var(--rule);
+        font-family:"Helvetica Neue",Helvetica,sans-serif; font-size:10pt; display:flex; gap:4mm;}
+.toc li::before{content:counter(toc); color:var(--accent); font-weight:700; min-width:6mm;}
+.toc .t{color:var(--faint); font-size:8.6pt; margin-left:auto; text-align:right; max-width:52%;}
+
+/* ---------- tables ---------- */
+table{width:100%; border-collapse:collapse; margin:3mm 0 4mm; font-size:8.9pt;
+      font-family:"Helvetica Neue",Helvetica,sans-serif;}
+thead{display:table-header-group}
+tr{page-break-inside:avoid}
+th{background:var(--soft); color:#123a56; text-align:left; font-weight:700; font-size:8pt;
+   letter-spacing:.05em; text-transform:uppercase; padding:2.2mm 2.5mm; border-bottom:1.5px solid var(--accent);}
+td{padding:2mm 2.5mm; border-bottom:1px solid var(--rule); vertical-align:top;}
+tbody tr:nth-child(even) td{background:#fafcfd}
+td.num,th.num{text-align:right; font-variant-numeric:tabular-nums; font-family:"SF Mono",Menlo,monospace; font-size:8.4pt;}
+.hl td{background:var(--ok-bg)!important; font-weight:700}
+
+/* ---------- code ---------- */
+pre{background:var(--code-bg); border:1px solid var(--code-rule); border-left:3px solid var(--accent);
+    border-radius:4px; padding:3mm 3.5mm; margin:3mm 0 4mm; overflow:hidden;
+    font-family:"SF Mono",Menlo,Consolas,monospace; font-size:8.1pt; line-height:1.45;
+    white-space:pre-wrap; word-break:break-word; page-break-inside:avoid;}
+pre code{background:none;border:none;padding:0;font-size:inherit}
+pre .c{color:#6b7f8e; font-style:italic}
+pre .k{color:#0b5fa5; font-weight:600}
+pre .s{color:#1d7a4d}
+pre .f{color:#8a3fa0}
+
+/* ---------- callouts ---------- */
+.box{border-radius:5px; padding:3mm 4mm; margin:3.5mm 0; font-size:9.4pt; page-break-inside:avoid;}
+.box .bt{font-family:"Helvetica Neue",Helvetica,sans-serif; font-weight:700; font-size:8.2pt;
+         letter-spacing:.11em; text-transform:uppercase; display:block; margin-bottom:1.6mm;}
+.box p:last-child{margin-bottom:0}
+.key{background:var(--soft); border:1px solid #c5dced;} .key .bt{color:var(--accent)}
+.warn{background:var(--warn-bg); border:1px solid var(--warn-rule);} .warn .bt{color:var(--warn)}
+.ok{background:var(--ok-bg); border:1px solid var(--ok-rule);} .ok .bt{color:var(--ok)}
+
+/* ---------- figures ---------- */
+figure{margin:5mm 0; page-break-inside:avoid; text-align:center}
+figure svg{max-width:100%; height:auto}
+figcaption{font-family:"Helvetica Neue",Helvetica,sans-serif; font-size:8.2pt; color:var(--muted);
+           margin-top:2mm; text-align:center;}
+figcaption b{color:var(--accent)}
+
+/* ---------- misc ---------- */
+.lede{font-size:10.6pt; color:#33475a; border-left:3px solid var(--accent2); padding-left:5mm; margin-bottom:5mm;}
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:4mm; margin:3mm 0}
+.card{border:1px solid var(--rule); border-radius:5px; padding:3mm 3.5mm; font-size:9.2pt; background:#fcfdfe}
+.card .ct{font-family:"Helvetica Neue",Helvetica,sans-serif; font-weight:700; font-size:8.6pt; color:var(--accent); margin-bottom:1.5mm}
+.formula{text-align:center; font-size:11pt; margin:4mm 0; font-style:italic}
+.qa{border-left:2px solid var(--rule); padding-left:4mm; margin-bottom:3.5mm; page-break-inside:avoid}
+.qa .q{font-family:"Helvetica Neue",Helvetica,sans-serif; font-weight:700; font-size:9.4pt; color:#123a56; margin-bottom:1mm}
+.qa .a{font-size:9.5pt}
+.tag{display:inline-block; font-family:"Helvetica Neue",Helvetica,sans-serif; font-size:7.4pt;
+     letter-spacing:.08em; text-transform:uppercase; font-weight:700; padding:.5mm 1.8mm; border-radius:3px; vertical-align:middle}
+.tag-ok{background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok-rule)}
+.tag-no{background:var(--warn-bg); color:var(--warn); border:1px solid var(--warn-rule)}
+.pb{page-break-before:always}
+</style></head>
+<body>
+
+<section class="cover">
+  <div class="cover-top">
+    <div class="eyebrow">Лабораторная работа №2</div>
+    <h1>Оптимизация доступа<br>в кэш</h1>
+    <div class="sub">Блочное умножение матриц из лабораторной №1 на Apple M5</div>
+    <div class="cover-rule"></div>
+    <div class="cover-abstract">
+      <p>Работа берёт векторизованное ядро из лабораторной №1 и, <strong>сохраняя матрицу
+      матриц</strong>, оптимизирует доступ к памяти под иерархию кэшей. Подматрица B держится в L2,
+      блоки A и столбец подматрицы B — в L1, пять строк блока результата — в регистрах. Размеры
+      подматриц на обоих уровнях даёт формула задания.</p>
+      <p>Все версии совпадают <strong>побитово</strong> на случайных дробных данных. На одном ядре C2
+      быстрее C1 в <strong>1,56–1,71 раза</strong> и скалярной версии — в <strong>2,32–2,61 раза</strong>;
+      с FMA — в 2,14 и 2,83 раза. Вклад регистров и подматриц измерен отдельно.</p>
+    </div>
+  </div>
+  <div class="cover-meta">
+    <div><span class="k">Матрица</span>384 × 384 блока по 10 × 10 double</div>
+    <div><span class="k">Плоский размер</span>3840 × 3840, mod 64 = 0</div>
+    <div><span class="k">Подматрица B</span>48 × 128 блоков, 4,9 МБ, ширины кратны 64</div>
+    <div><span class="k">Данные</span>случайные double из [−1, 1)</div>
+    <div><span class="k">Целевая машина</span>Apple M5, ARM64, macOS, одно ядро</div>
+    <div><span class="k">SIMD</span>SSE2-интринсики → NEON (sse2neon)</div>
+  </div>
+</section>
+
+<section class="toc">
+  <h2>Содержание</h2>
+  <ol>
+    <li>Что требуется<span class="t">задание и ограничения</span></li>
+    <li>Целевая машина<span class="t">кэши M5 и цена промаха</span></li>
+    <li>Блоки, C0 и C1<span class="t">раскладка в памяти, скалярная база, версия только с векторизацией</span></li>
+    <li>Размер подматриц по формуле задания<span class="t">L/3 · 0,9 на двух уровнях, кратность 64 байтам</span></li>
+    <li>C2: оптимизация под кэш<span class="t">подматрицы в L2 и L1, регистры</span></li>
+    <li>Побитовая идентичность<span class="t">почему результат не меняется и почему данные случайные</span></li>
+    <li>Результаты измерений<span class="t">тайминги и инструкции</span></li>
+    <li>Анализ<span class="t">вклад регистров и подматриц, сравнение с лаб. №1</span></li>
+    <li>Вопросы на защиту<span class="t">короткие ответы</span></li>
+  </ol>
+</section>
+
+<section class="sec">
+<h2><span class="num">1</span>Что требуется</h2>
+
+<p class="lede">Взять векторизованную версию из лабораторной №1 и оптимизировать её под кэш,
+сохранив матрицу матриц. Доказать, что результат не изменился, и обосновать преимущества
+оптимизации.</p>
+
+<table>
+<thead><tr><th style="width:38%">Требование</th><th>Как выполнено</th></tr></thead>
+<tbody>
+<tr><td>Исходник — версия <strong>только с векторизацией</strong> из лаб. №1</td><td>C1 — ядро SSE2 из лабораторной №1 без изменений, на той же блочной матрице, блоки в исходном порядке i → j → k — без какой-либо оптимизации под кэш (§3)</td></tr>
+<tr><td>Матрица матриц сохраняется</td><td>строка «матрицу матриц можно удалить» в задании <strong>зачёркнута</strong>; A, B и C — сетки 384 × 384 блоков по 10 × 10 чисел, раскладка как в лаб. №1</td></tr>
+<tr><td>Две версии: C1 векторизованная, C2 по заданию</td><td><code>multiply_vectorized</code> и <code>multiply_blocked</code>; для сравнения добавлена скалярная C0 — <code>multiply_scalar</code></td></tr>
+<tr><td>C1 и C2 совпадают <strong>полностью</strong></td><td><code>memcmp</code> по всему массиву, без epsilon, на случайных дробных данных; от проверки зависит код возврата</td></tr>
+<tr><td>Обосновать преимущества оптимизации</td><td>замер задержек <code>make probe</code> (§2), раздельный замер вклада регистров и подматриц, трафик к памяти (§8)</td></tr>
+<tr><td>mod(size, 64) = 0</td><td>3840 = 384 · 10, кратно 64; проверяется <code>_Static_assert</code></td></tr>
+<tr><td>blocksize = ⌊L3<sub>size</sub> / 3 · 0,9⌋ — максимальный размер одного блока</td><td>в задании эта единица названа блоком; здесь блок — это 10 × 10 из лаб. №1, поэтому она названа <strong>подматрицей</strong>. Формула вычисляется во время выполнения и применена к L2 и к L1d (§4)</td></tr>
+<tr><td>Ширина подматриц A и B в байтах кратна 64</td><td>48 блоков = 3840 байт и 128 блоков = 10 240 байт; ширины всегда кратны 8 блокам = 640 байт</td></tr>
+<tr><td>Блок одной матрицы неизменен, пока не обработаны все блоки второй</td><td>подматрица B держится, пока мимо неё проходят все 384 строки блоков A</td></tr>
+<tr><td>Замер: high_resolution_clock или rdtsc</td><td><code>CLOCK_MONOTONIC_RAW</code> и счётчик <code>cntvct_el0</code> — аналог rdtsc на ARM; оба печатаются</td></tr>
+<tr><td>Запрет <code>clock()</code>, <code>time()</code>; только Release</td><td>соблюдено; сборка <code>-O3</code></td></tr>
+<tr><td>Запрет транспонирования из лаб. №1</td><td>соблюдён: ничего не копируется и не переставляется, блоки B читаются на месте</td></tr>
+</tbody>
+</table>
+
+<h3>Бонусные пункты</h3>
+<table>
+<thead><tr><th style="width:38%">Бонус</th><th>Статус</th></tr></thead>
+<tbody>
+<tr><td>Оптимизация не только под L3, но и под L2, L1</td><td>У M5 два уровня кэша: L1 на ядро и L2 на кластер, играющий роль L3. Формула задания применена к обоим: L1d задаёт глубину подматрицы, L2 — её ширину; плюс регистры (§4, §5)</td></tr>
+<tr><td>Расширенная версия по cpumemory.pdf</td><td>По §6.2.1 Drepper'а: подзадачи, помещающиеся в кэш, и переиспользование загруженного — на трёх уровнях (L2, L1, регистры). Почему C1 медленная — по §6.3.1 (предвыборка), подтверждено замером <code>make probe</code></td></tr>
+<tr><td>Intel vTune</td><td>Недоступен на Apple silicon. Аналог — Instruments → CPU Counters, требует Xcode</td></tr>
+</tbody>
+</table>
+</section>
+
+<section class="sec">
+<h2><span class="num">2</span>Целевая машина</h2>
+
+<p>Параметры кэшей программа читает во время выполнения через <code>sysctl</code>:</p>
+
+<table>
+<thead><tr><th>Уровень</th><th class="num">Размер</th><th>Примечание</th></tr></thead>
+<tbody>
+<tr><td>L1d (P-ядра)</td><td class="num">128 KiB</td><td>на ядро производительного кластера</td></tr>
+<tr><td>L1d (E-ядра)</td><td class="num">64 KiB</td><td>экономичный кластер</td></tr>
+<tr><td>L2 (P-кластер)</td><td class="num">16 MiB</td><td>общий на 4 производительных ядра</td></tr>
+<tr><td>L2 (E-кластер)</td><td class="num">6 MiB</td><td>общий на 6 экономичных ядер</td></tr>
+<tr><td><strong>L3</strong></td><td class="num">отсутствует</td><td>у Apple silicon нет архитектурного L3</td></tr>
+<tr><td>Кэш-линия</td><td class="num">128 байт</td><td>вдвое больше обычных 64 байт на x86</td></tr>
+<tr><td>Страница памяти</td><td class="num">16 KiB</td><td>вчетверо больше обычных 4 KiB на x86</td></tr>
+</tbody>
+</table>
+
+<div class="box warn">
+<span class="bt">Две ловушки</span>
+<p><strong>Первая.</strong> <code>sysctl hw.l1dcachesize</code> и <code>hw.l2cachesize</code> возвращают
+64 KiB и 6 MiB — значения <em>экономичного</em> кластера. Код читает
+<code>hw.perflevel0.*</code>, иначе расчёт подматриц занижен.</p>
+<p><strong>Вторая.</strong> Архитектурного L3 нет. Его роль в формуле задания берёт L2
+производительного кластера: на x86 L3 — общий кэш ядер, а у M5 общий для кластера кэш — это L2.
+Программа печатает это явно.</p>
+</div>
+
+<p>Программа однопоточная. Запущенная из терминала, она получает QoS user-interactive и
+выполняется на производительном ядре. В фоновом режиме процесс прижимается к экономичным ядрам,
+под кэши которых подматрицы не рассчитаны, — программа определяет это и печатает предупреждение.
+Режим низкого энергопотребления снижает частоту примерно вдвое; все замеры сняты с ним
+выключенным.</p>
+
+<h3>Цена промаха на этой машине: <code>make probe</code></h3>
+<p>Отдельная программа <code>cache_probe</code> измеряет задержку одной загрузки в зависимости от
+размера рабочего множества. В буфере лежит по одному указателю на кэш-линию, программа идёт по
+цепочке, и каждая загрузка зависит от предыдущей — поэтому видна полная задержка. Цепочка
+строится двумя способами: в <strong>случайном</strong> порядке, который не угадать никакой предвыборке,
+и в <strong>порядке адресов</strong>, который аппаратная предвыборка распознаёт.</p>
+
+<table>
+<thead><tr><th>Рабочее множество</th><th class="num">Случайно, нс</th><th class="num">Подряд, нс</th><th>Где лежит</th></tr></thead>
+<tbody>
+<tr><td>16–128 KiB</td><td class="num">0,68</td><td class="num">0,68</td><td>L1d</td></tr>
+<tr><td>256–512 KiB</td><td class="num">2,7–2,8</td><td class="num">1,3</td><td>L2</td></tr>
+<tr><td>2–8 MiB</td><td class="num">7,0–8,4</td><td class="num">1,7–1,8</td><td>L2, промахи TLB</td></tr>
+<tr><td>16 MiB</td><td class="num">17,3</td><td class="num">2,4</td><td>на пределе L2</td></tr>
+<tr class="hl"><td>64–512 MiB</td><td class="num">82–86</td><td class="num">6,6–6,7</td><td>память</td></tr>
+</tbody>
+</table>
+
+<div class="grid2">
+  <div class="card"><div class="ct">Размер рабочего множества</div>Загрузка из памяти стоит в
+  <strong>127 раз</strong> дороже, чем из L1, и в 10–30 раз дороже, чем из L2. Отсюда правило: то,
+  что переиспользуется, держать в кэше. Это делают подматрицы.</div>
+  <div class="card"><div class="ct">Порядок обращений</div>Из памяти подряд — 6,6 нс, вразброс — 86:
+  предвыборка скрывает <strong>92 %</strong> задержки, но только при последовательном чтении. C1
+  читает B вразброс (§3).</div>
+</div>
+<p>Числа между прогонами немного плавают (в диапазоне 1–32 MiB — до 1,6 раза), ступени на 128 KiB и
+16 MiB совпадают с <code>sysctl</code> всегда.</p>
+</section>
+
+<section class="sec">
+<h2><span class="num">3</span>Блоки, C0 и C1</h2>
+
+<h3>Как лежат блоки</h3>
+<p>Каждая матрица — сетка 384 × 384 блока, блок — матрица 10 × 10 чисел <code>double</code>, по строкам.
+Блок — это <strong>800 байт подряд</strong>, 6,25 кэш-линии. Блоки лежат строка за строкой: блок (r, c)
+начинается с элемента <code>(r · 384 + c) · 100</code>.</p>
+
+<pre>              столбец блоков →
+            ┌───────┬───────┬───────┬─────
+строка 0    │ (0,0) │ (0,1) │ (0,2) │ ...    адреса 0, 800, 1600, … — подряд
+            ├───────┼───────┼───────┼─────
+строка 1    │ (1,0) │ (1,1) │ (1,2) │ ...    начинается через 384 · 800 = 307 200 байт
+            ├───────┼───────┼───────┼─────</pre>
+
+<p>Отсюда два направления: <strong>вправо по строке блоков</strong> следующий блок лежит вплотную, а
+<strong>вниз по столбцу блоков</strong> — на 307 200 байт дальше, на другой странице памяти. Для блока
+результата <code>C[i][j] = Σ A[i][k] · B[k][j]</code> нужна строка блоков A (подряд) и столбец блоков B
+(с прыжками); каждое «·» — произведение двух блоков 10 × 10, 2000 операций.</p>
+
+<h3>C1: только векторизация</h3>
+<p>C1 — это ядро SSE2 из лабораторной №1 без единого изменения. Блоки обходятся в исходном,
+«учебном» порядке i → j → k: каждый блок результата получает всю свою сумму, и только потом
+начинается следующий.</p>
+
+<pre><span class="k">for</span> (block_row)                                  <span class="c">// строка блоков C</span>
+    <span class="k">for</span> (block_col)                              <span class="c">// блок результата</span>
+        <span class="k">for</span> (block_k)                            <span class="c">// вся его сумма по k</span>
+            C[block_row][block_col] += A[block_row][block_k] · B[block_k][block_col];</pre>
+
+<p>Произведение пары блоков — схема Intel AP-930: элемент A размножается по дорожкам вектора и
+умножается на строку блока B, которая читается подряд. Строка блока результата — 10 чисел, пять
+регистров <code>__m128d</code> — живёт в регистрах на время одного произведения блоков.</p>
+
+<div class="box key">
+<span class="bt">Чем C1 отличается от программы лабораторной №1</span>
+<p>В лабораторной №1 блоки шли в порядке i → k → j. Этот порядок — уже оптимизация под кэш: при нём
+строка блоков B читается подряд, и работает предвыборка. Задание требует, чтобы C1 была версией
+<em>только</em> с векторизацией, поэтому здесь ядро то же, а порядок блоков исходный. C2 решает ту же
+проблему другим способом — подматрицами в кэше (§5).</p>
+<p>Поэтому C1 здесь медленнее, чем SSE2-версия в выводе лабораторной №1: 17,9–21,4 против 31,2
+GFLOP/s. Сравнение двух лабораторных — в §8.</p>
+</div>
+
+<h3>C0: скалярная база</h3>
+<p>Чтобы было видно, что даёт каждая из двух лабораторных, программа замеряет и скалярную версию.
+C0 — простое ядро лабораторной №1 (<code>inner_row</code> → <code>inner_k</code> → <code>inner_col</code>),
+собранное с <code>-fno-vectorize -fno-slp-vectorize</code>, в том же порядке блоков i → j → k, что и
+C1. Поэтому C1 / C0 — эффект векторизации и ничего больше, C2 / C1 — эффект оптимизации под кэш,
+C2 / C0 — обеих лабораторных вместе. <code>make disasm</code> показывает, что в C0 нет ни одной
+векторной арифметической инструкции.</p>
+
+<h3>Что блочная раскладка уже сделала</h3>
+<p>Каждый блок — 800 непрерывных байт, поэтому даже в порядке i → j → k любая подтянутая
+кэш-линия используется целиком. На плоской матрице C1 с вектором по j читала бы B по столбцам и
+брала бы из каждой 128-байтной линии только 16 байт. Именно так получаются разрывы на порядок в
+работах с плоскими матрицами. Блочная раскладка убрала эту проблему ещё в лабораторной №1.</p>
+
+<h3>Что осталось</h3>
+<ul>
+<li><strong>Столбец B читается с прыжками.</strong> Соседние блоки столбца лежат в 307 КБ друг от друга,
+на разных страницах; по мере движения по j это 384 переплетённых потока. Drepper (§6.3.1) пишет, что
+аппаратная предвыборка отслеживает от восьми до шестнадцати потоков и не пересекает границ страниц, —
+каждый блок B приходится ждать.</li>
+<li><strong>B читается из памяти 384 раза.</strong> Вся матрица B (118 МБ) не помещается в кэш и заново
+читается для каждой строки блоков C — около 45,7 ГБ.</li>
+<li><strong>C гоняется через память.</strong> Строка блока результата загружается и сохраняется на каждое
+произведение блоков — 384 раза за сумму.</li>
+</ul>
+</section>
+
+<section class="sec">
+<h2><span class="num">4</span>Размер подматриц по формуле задания</h2>
+
+<div class="formula">block<sub>size</sub> = ⌊ L<sub>size</sub> / 3 · 0,9 ⌋</div>
+
+<p><strong>Подматрица</strong> — прямоугольник из целых блоков, который держится в кэше, пока с ним
+работают. В задании эта единица названа блоком; здесь блок — это 10 × 10 из лабораторной №1,
+поэтому прямоугольник из блоков называется подматрицей.</p>
+
+<p>В уровне кэша одновременно должны уместиться три подматрицы — от A, от B и от C, — отсюда деление
+на три. Множитель 0,9 оставляет десятую часть на остальное. Код считает формулу как
+<code>L · 90 / 300</code> одним целочисленным делением: вариант «сначала поделить на 3» округляет
+дважды и для некоторых L ошибается на единицу. Формула применяется к двум уровням.</p>
+
+<table style="page-break-inside:avoid">
+<thead><tr><th style="width:20%">Уровень</th><th class="num">L</th><th class="num">⌊L/3 · 0,9⌋</th><th>Что ограничивает</th><th class="num">Итог</th></tr></thead>
+<tbody>
+<tr><td><strong>L1d</strong></td><td class="num">128 KiB</td><td class="num">39 321 Б</td><td>блоки строки A, которые встречаются с подматрицей B (1 × глубина), и столбец подматрицы B (глубина × 1) — каждый ≤ 39 321 байт</td><td class="num">глубина 48</td></tr>
+<tr><td><strong>L2 (роль L3)</strong></td><td class="num">16 MiB</td><td class="num">5 033 164 Б</td><td>вся подматрица B, глубина × ширина блоков</td><td class="num">ширина 128</td></tr>
+</tbody>
+</table>
+
+<p>39 321 байт вмещают 49 блоков по 800 байт; из делителей 384, кратных 8, наибольший не больше 49 —
+<strong>48</strong>. При глубине 48 бюджет L2 вмещает 131 блок в ширину; подходящий делитель —
+<strong>128</strong>. Подматрица B — 48 × 128 блоков = 4,9 МБ при разрешённых 5,03 МБ; матрица B
+режется на 8 × 3 = 24 такие подматрицы.</p>
+
+<pre>=== cache geometry ===
+cache line              : 128 bytes
+L1 data                 : 128 KiB
+L2                      : 16384 KiB
+L3                      : absent, L2 takes its place
+max sub-matrix, L2      : 5033164 bytes (L2 / 3 * 0.9)
+max sub-matrix, L1d     : 39321 bytes (L1d / 3 * 0.9)
+B sub-matrix, in L2     : 48 x 128 blocks, 4915200 bytes
+  width of A sub-matrix : 48 blocks = 3840 bytes (mod 64 = 0)
+  width of B sub-matrix : 128 blocks = 10240 bytes (mod 64 = 0)
+in L1d                  : A 1 x 48 blocks + B column 48 x 1 blocks, 38400 bytes each
+in registers            : 5 rows x 10 columns of a result block (25 accumulators)</pre>
+
+<h3>Кратность ширины 64 байтам — в блочной матрице</h3>
+<p>Подматрица шириной <em>w</em> блоков имеет ширину <code>w · 10 · 8 = 80·w</code> байт как матрица и
+занимает <code>w · 800</code> подряд идущих байт на каждую строку блоков в памяти. При <em>w</em>,
+кратном 8, оба числа кратны и 64 байтам (требование задания), и 128 — кэш-линии M5: каждая строка
+блоков подматрицы начинается на границе линии и занимает целое число линий. Поэтому ширины
+подматриц в коде всегда кратны 8 блокам.</p>
+
+<p>Форма подматрицы на скорость почти не влияет: при разработке 64 × 64, 48 × 48, 96 × 96 и
+48 × 128 блоков дали одинаковую скорость в пределах 3 %. Выбрана та, что следует из формулы на
+обоих уровнях. Переменные окружения <code>LAB2_DEPTH</code> и <code>LAB2_WIDTH</code> позволяют задать
+размеры вручную для экспериментов.</p>
+</section>
+
+<section class="sec">
+<h2><span class="num">5</span>C2: оптимизация под кэш</h2>
+
+<p>C2 выполняет ту же арифметику, что C1, и в том же порядке i → j → k — но не по всей матрице, а
+внутри подматрицы B, которая лежит в кэше. Идея: взять кусок B, который помещается в кэш, загрузить
+его один раз и сделать <strong>всю</strong> работу, которой он нужен, прежде чем перейти к следующему.</p>
+
+<pre>            128 блоков    128          128
+          ┌────────────┬────────────┬────────────┐
+ 48 блоков│ подматр. 0 │ подматр. 1 │ подматр. 2 │   матрица B: 8 × 3 = 24 подматрицы
+          ├────────────┼────────────┼────────────┤
+ 48       │     ...    │            │            │   пока одна лежит в L2, мимо неё
+          ├────────────┼────────────┼────────────┤   проходят все 384 строки блоков A
+          │          ... всего 8 рядов           │</pre>
+
+<table>
+<thead><tr><th style="width:22%">Уровень</th><th>Что там держится</th><th class="num">Размер</th></tr></thead>
+<tbody>
+<tr><td><strong>L2 (роль L3)</strong></td><td>подматрица B: 48 × 128 блоков. Неизменна, пока мимо неё проходят все 384 строки блоков A. Спуск по её столбцам идёт с прыжками, но попадает в L2, а не в память</td><td class="num">4,9 МБ</td></tr>
+<tr><td><strong>L1d</strong></td><td>48 блоков строки A — они лежат подряд и нужны для всех 128 столбцов подматрицы; столбец подматрицы B (48 блоков) — нужен обеим половинам блока результата</td><td class="num">2 × 38,4 КБ</td></tr>
+<tr><td><strong>Регистры</strong></td><td>5 строк блока результата — 25 аккумуляторов на всю глубину подматрицы, 48 произведений блоков подряд</td><td class="num">5 × 10</td></tr>
+</tbody>
+</table>
+
+<pre><span class="k">for</span> (first_k  = 0; first_k  &lt; 384; first_k  += 48)          <span class="c">// по глубине — по возрастанию</span>
+  <span class="k">for</span> (first_col = 0; first_col &lt; 384; first_col += 128)      <span class="c">// подматрица B неизменна...</span>
+    <span class="k">for</span> (block_row = 0; block_row &lt; 384; ++block_row)        <span class="c">// ...пока идут ВСЕ строки A</span>
+      <span class="k">for</span> (block_col <span class="k">in</span> подматрице)                          <span class="c">// 128 столбцов</span>
+        <span class="k">for</span> (половина = строки 0–4, затем 5–9) {
+          acc[5][5] = C[block_row][block_col], строки половины;  <span class="c">// 25 регистров</span>
+          <span class="k">for</span> (block_k <span class="k">in</span> подматрице)                       <span class="c">// 48 блоков столбца B — из L2</span>
+            <span class="k">for</span> (inner_k = 0; inner_k &lt; 10; ++inner_k)
+              acc += A[block_row][block_k] · B[block_k][block_col];
+          C[block_row][block_col] = acc;
+        }</pre>
+
+<p>Это ровно правило задания: «блок одной из матриц остаётся без изменений до тех пор, пока не
+будут обработаны ВСЕ блоки второй матрицы». Неподвижная матрица — B.</p>
+
+<h3>Что изменилось по сравнению с C1</h3>
+<table>
+<thead><tr><th style="width:34%"></th><th>C1</th><th>C2</th></tr></thead>
+<tbody>
+<tr><td>Сколько раз B читается из памяти</td><td>384 раза</td><td>1 раз — каждая подматрица один раз</td></tr>
+<tr><td>Спуск по столбцу B</td><td>384 блока, из памяти</td><td>48 блоков, из L2</td></tr>
+<tr><td>Строка A</td><td>307 КБ, в L1 не помещается</td><td>48 блоков, 38,4 КБ, живут в L1</td></tr>
+<tr><td>Загрузок и сохранений блока C</td><td>384 на блок</td><td>8 на блок — раз на ряд подматриц</td></tr>
+</tbody>
+</table>
+
+<h3>Регистровый уровень: результат не покидает регистры</h3>
+<p>Ядро лабораторной №1 держит в регистрах одну строку блока результата и только на время одного
+произведения блоков. В C2 в регистрах пять строк блока результата, и они остаются там на всю
+глубину подматрицы — 48 произведений блоков подряд.</p>
+
+<pre><span class="k">for</span> (inner_k = 0; inner_k &lt; 10; ++inner_k) {
+    right_0..right_4 = строка inner_k блока B;          <span class="c">/* 5 загрузок */</span>
+    <span class="k">for</span> (row = 0; row &lt; 5; ++row) {
+        left = broadcast(A[row][inner_k]);              <span class="c">/* 1 загрузка */</span>
+        acc[row][0..4] = accumulate_product(acc[row][0..4], left, right_0..4);
+    }
+}</pre>
+<p>На шаг — десять загрузок на 25 операций вместо шести на пять у ядра лабораторной №1. 25
+аккумуляторов, пять векторов строки B и один broadcast — 31 из 32 векторных регистров NEON;
+<code>objdump</code> не показывает ни одного сброса векторного регистра на стек в цикле. Внутри каждого
+элемента <em>k</em> по-прежнему идёт по возрастанию.</p>
+
+<h3>Без копирования и без транспонирования</h3>
+<p>Блоки B читаются прямо из матрицы: каждый блок — 800 непрерывных байт. Упаковку B в отдельный
+буфер проверяли на предыдущей версии ядра — выигрыша в пределах шума не было. Ничего не
+копируется и не переставляется, поэтому вопрос о транспонировании не возникает вовсе.</p>
+</section>
+
+<section class="sec">
+<h2><span class="num">6</span>Побитовая идентичность</h2>
+
+<p>Сложение с плавающей точкой неассоциативно: (a + b) + c ≠ a + (b + c). Версии обходят блоки в
+разном порядке, а результат обязан совпасть до бита. Совпадение держится на двух вещах.</p>
+
+<h3>1. Одинаковый порядок слагаемых внутри каждого элемента</h3>
+<p>Важно не то, в каком порядке заполняются <em>разные</em> элементы C, а в каком порядке к
+<em>одному</em> элементу прибавляются произведения. Во всех версиях блоки по глубине идут по
+возрастанию, внутри блока <em>k</em> — тоже по возрастанию:</p>
+
+<table>
+<thead><tr><th>Версия</th><th>Порядок циклов</th><th>k для одного элемента C</th></tr></thead>
+<tbody>
+<tr><td>C0</td><td>block_row → block_col → block_k → строка → k → столбец</td><td>0, 1, …, 3839</td></tr>
+<tr><td>C1</td><td>block_row → block_col → block_k → строка → k</td><td>0, 1, …, 3839</td></tr>
+<tr><td>C2</td><td>first_k → first_col → block_row → block_col → половина → block_k → k</td><td>0, 1, …, 3839</td></tr>
+</tbody>
+</table>
+<p>Подматрицы меняют, какой элемент продвигается следующим, но не порядок слагаемых внутри элемента:
+подматрицы по глубине идут по возрастанию во внешнем цикле. Drepper в §6.2.1 переупорядочивает
+суммирование свободнее и оговаривает, что игнорирует эффекты округления; здесь их игнорировать
+нельзя, поэтому порядок по <em>k</em> сохранён везде.</p>
+
+<h3>2. Одна и та же операция</h3>
+<p>Векторные ядра выполняют каждый шаг через одну функцию <code>accumulate_product</code>, скалярное —
+через её однодорожечный двойник: по умолчанию раздельные умножение и сложение, как в лабораторной
+№1. <code>#pragma STDC FP_CONTRACT OFF</code> и <code>-ffp-contract=off</code> запрещают компилятору сливать
+их по своей инициативе. Сборка <code>make FMA=1</code> переключает все три ядра на слитую операцию
+одновременно (<code>fmla.2d</code> в векторных, <code>fmadd</code> в скалярном).</p>
+
+<h3>Почему данные случайные</h3>
+<p>Программа заполняет A и B случайными числами из [−1, 1) с полными 53-битными мантиссами.
+Округление происходит почти на каждой операции, поэтому совпадение до бита возможно, только если
+порядок и операции действительно одинаковы. На маленьких целых числах проверка ничего бы не
+доказывала: их суммы точны в любом порядке. Это проверено напрямую — умножение 640 × 640 с
+суммированием по <em>k</em> в обратном порядке:</p>
+
+<table>
+<thead><tr><th>Данные</th><th class="num">Расходящихся элементов</th><th class="num">Наибольшая разница</th><th><code>memcmp</code></th></tr></thead>
+<tbody>
+<tr><td>целые из [−8, 8]</td><td class="num">0 из 409 600</td><td class="num">0</td><td><span class="tag tag-no">равны</span></td></tr>
+<tr class="hl"><td>случайные из [−1, 1)</td><td class="num">391 956 из 409 600 (95,7 %)</td><td class="num">9,6 · 10⁻¹⁴</td><td><span class="tag tag-ok">различаются</span></td></tr>
+</tbody>
+</table>
+
+<div class="box ok">
+<span class="bt">Что это доказывает</span>
+<p>На целых данных ядро с другим порядком суммирования прошло бы проверку, на случайных — нет.
+Программа сверяет C2 и C0 с C1 на случайных данных, в обоих режимах арифметики, и обе совпадают
+побитово. Три независимо написанных ядра — скалярное, векторное и блочное — дают один и тот же
+результат до бита; это и проверка правильности самого умножения.</p>
+</div>
+</section>
+
+<section class="sec">
+<h2><span class="num">7</span>Результаты измерений</h2>
+
+<p>384 × 384 блока по 10 × 10 <code>double</code> (3840 × 3840, 112,5 МиБ на матрицу), 1,13 · 10¹¹
+операций с плавающей точкой, один поток. Сборка <code>-O3 -march=native</code>, лучший из трёх
+прогонов, раздельные умножение и сложение — как в лабораторной №1. <code>make run</code> идёт около
+50 секунд.</p>
+
+<pre>=== verification (memcmp, no epsilon) ===
+C2 equals C1, bit-exact              : PASS
+C0 equals C1, bit-exact              : PASS
+
+=== results ===
+version                        time, ms    counter ticks    GFLOP/s    vs C0    vs C1
+C0 (scalar)                    8606.803       8606805691     13.158    1.00x    0.66x
+C1 (vectorized, lab 1)         5719.373       5719375370     19.800    1.50x    1.00x
+C2 (cache-optimised)           3397.724       3397726619     33.330    2.53x    1.68x</pre>
+
+<table>
+<thead><tr><th>По пяти прогонам</th><th class="num">Раздельно (как лаб. №1)</th><th class="num">FMA (<code>make FMA=1</code>)</th></tr></thead>
+<tbody>
+<tr><td>C0, GFLOP/s</td><td class="num">12,8–13,7</td><td class="num">20,2</td></tr>
+<tr><td>C1, GFLOP/s</td><td class="num">17,9–21,4</td><td class="num">26,7</td></tr>
+<tr><td>C2, GFLOP/s</td><td class="num">30,4–33,3</td><td class="num">57,2</td></tr>
+<tr><td>C1 / C0 — векторизация</td><td class="num">1,35–1,59×</td><td class="num">1,32×</td></tr>
+<tr class="hl"><td>C2 / C1 — оптимизация под кэш</td><td class="num">1,56–1,71×</td><td class="num">2,14×</td></tr>
+<tr class="hl"><td>C2 / C0 — обе лабораторные</td><td class="num">2,32–2,61×</td><td class="num">2,83×</td></tr>
+</tbody>
+</table>
+
+<p>Сильнее всего от прогона к прогону плавает C1 — 17,9–21,4 GFLOP/s: она часть времени ждёт память,
+и её скорость зависит от состояния машины. C2 стабильнее — 30,4–33,3.</p>
+
+<p>Счётчик <code>cntvct_el0</code> — аналог <code>rdtsc</code> на ARM — тикает с фиксированной частотой
+1 ГГц, а не с частотой ядра, поэтому его значения названы тиками.</p>
+
+<div class="grid2">
+  <div class="card"><div class="ct">Проверки memcmp</div><span class="tag tag-ok">PASS</span> — C2 и C0 совпадают с C1 по всем 14 745 600 элементам, на случайных данных, в обоих режимах</div>
+  <div class="card"><div class="ct">make disasm</div>C0 — 100 <code>fmul</code> и 100 <code>fadd</code> по скалярным <code>d</code>-регистрам, ни одной векторной; C1 и C2 — только <code>fmul.2d</code> и <code>fadd.2d</code>; с <code>FMA=1</code> — только слитые</div>
+</div>
+</section>
+
+<section class="sec">
+<h2><span class="num">8</span>Анализ</h2>
+
+<h3>Вклад регистров и подматриц</h3>
+<p>Если задать подматрицу размером со всю матрицу — <code>LAB2_DEPTH=384 LAB2_WIDTH=384 make run</code>,
+— C2 работает без кэш-блокировки: те же 25 регистров, тот же порядок, но спуск по столбцу B идёт по
+всем 384 блокам из памяти. Так вклад двух частей C2 измеряется по отдельности:</p>
+
+<table style="page-break-inside:avoid">
+<thead><tr><th>Версия, GFLOP/s</th><th class="num">Раздельно</th><th class="num">FMA</th></tr></thead>
+<tbody>
+<tr><td>C1</td><td class="num">20,3–21,0</td><td class="num">26,7</td></tr>
+<tr><td>C2 без подматриц — только регистры</td><td class="num">25,1–28,1</td><td class="num">37,8</td></tr>
+<tr class="hl"><td>C2 — регистры и подматрицы</td><td class="num">33,2–33,3</td><td class="num">57,2–58,9</td></tr>
+<tr><td>вклад регистров</td><td class="num">≈ 1,24–1,34×</td><td class="num">≈ 1,41×</td></tr>
+<tr><td>вклад подматриц</td><td class="num">≈ 1,19–1,32×</td><td class="num">≈ 1,56×</td></tr>
+</tbody>
+</table>
+
+<ul>
+<li><strong>Регистры</strong> убирают лишние загрузки: блок C больше не гоняется через память на каждое
+произведение блоков, а на каждую загрузку приходится 2,5 операции вместо 0,8.</li>
+<li><strong>Подматрицы</strong> убирают ожидание памяти: спуск по столбцу B попадает в L2 (2,7–8 нс по
+<code>make probe</code>), а не в память (около 86 нс вразброс), и каждый кусок B читается из памяти
+один раз. Трафик к памяти падает с 45,7 ГБ до примерно 2,4 ГБ: B — один раз, A — 3 раза (по разу на
+столбец подматриц), C — 8 раз на чтение и запись (по разу на ряд по глубине).</li>
+</ul>
+
+<h3>Почему не больше</h3>
+<p>С раздельными умножением и сложением C2 упирается в потолок арифметики одного ядра — около 33
+GFLOP/s. Признаки этого:</p>
+<ul>
+<li><strong>Форма подматрицы не важна:</strong> от 48 × 48 до 96 × 96 блоков скорость одинакова в
+пределах 3 %. Если бы ограничивала память, размер имел бы значение.</li>
+<li><strong>С FMA потолок выше</strong> — одна инструкция вместо двух, — и те же регистры и подматрицы
+дают уже 2,14–2,2× к C1.</li>
+</ul>
+
+<h3>Сравнение с лабораторной №1</h3>
+<p>Вывод программы лабораторной №1 на той же машине — матрица 400 × 400 блоков (4000 × 4000).
+Размеры у лабораторных разные, но GFLOP/s сравнимы:</p>
+<pre>version                      time, ms        counter ticks      GFLOP/s    speedup
+scalar (no vector)           7490.708           7490708347       17.088      1.00x
+auto-vectorized C1           4175.592           4175591852       30.654      1.79x
+sse2 intrinsics C2           4108.508           4108508033       31.155      1.82x</pre>
+
+<table style="page-break-inside:avoid">
+<thead><tr><th>GFLOP/s</th><th class="num">Лаб. №1, блоки i → k → j</th><th class="num">Лаб. №2, блоки i → j → k</th></tr></thead>
+<tbody>
+<tr><td>Скалярная версия</td><td class="num">17,1</td><td class="num">12,8–13,7 (C0)</td></tr>
+<tr><td>Векторная, то же ядро SSE2</td><td class="num">31,2</td><td class="num">17,9–21,4 (C1)</td></tr>
+<tr class="hl"><td>Векторизация</td><td class="num">1,82×</td><td class="num">1,35–1,59×</td></tr>
+<tr><td>Оптимизация под кэш лаб. №2</td><td class="num">—</td><td class="num">30,4–33,3 (C2)</td></tr>
+</tbody>
+</table>
+
+<h4>Почему векторизация здесь даёт меньше</h4>
+<p>Предел для <code>double</code> в 128-битном регистре — 2×. В лабораторной №1 обе версии шли в порядке
+i → k → j: B читается подряд, ждать почти нечего, и векторизация дала 1,82×. В лабораторной №2 C0 и
+C1 идут в порядке i → j → k и часть времени ждут блоки B. Векторизация вдвое сокращает арифметику,
+но не ожидание. Если считать, что арифметика сокращается ровно вдвое, прогон из §7 раскладывается
+так:</p>
+<table style="page-break-inside:avoid">
+<thead><tr><th>Версия</th><th class="num">Всего</th><th class="num">Арифметика</th><th class="num">Ожидание памяти</th></tr></thead>
+<tbody>
+<tr><td>C0, скалярная</td><td class="num">8,61 с</td><td class="num">≈ 5,8 с</td><td class="num">≈ 2,8 с</td></tr>
+<tr><td>C1, векторная</td><td class="num">5,72 с</td><td class="num">≈ 2,9 с</td><td class="num">≈ 2,8 с</td></tr>
+</tbody>
+</table>
+
+<h4>C2 и программа лабораторной №1</h4>
+<p>Без FMA C2 (30,4–33,3 GFLOP/s) работает на уровне SSE2-версии лабораторной №1 (31,2): 0,98–1,07×.
+Обе упираются в один потолок арифметики, но приходят к нему разными путями. Лабораторная №1 —
+порядком i → k → j: B читается подряд, и память подаёт её через предвыборку. C2 — подматрицами и
+регистрами: B читается с прыжками, но из кэша. С FMA, где потолок выше, путь C2 выигрывает: 57–59
+против 42,6 GFLOP/s у того же ядра в порядке лабораторной №1, в 1,34–1,38 раза.</p>
+
+<div class="box key">
+<span class="bt">Если выводы двух лабораторных положат рядом</span>
+<p>Ядро C1 — то же, что в лабораторной №1. Медленнее оно из-за порядка блоков: задание требует
+версию только с векторизацией, а i → k → j — уже оптимизация под кэш. Без FMA C2 на уровне программы
+лабораторной №1: на одном ядре M5 обе упираются в арифметику. С FMA C2 быстрее порядка лабораторной
+№1 в 1,34–1,38 раза.</p>
+</div>
+
+<h3>Что сработало на каждом уровне</h3>
+<table>
+<thead><tr><th style="width:26%">Уровень</th><th>Оптимизация</th><th class="num">Эффект на M5</th></tr></thead>
+<tbody>
+<tr><td>Кэш-линии</td><td>матрица матриц из лаб. №1: блок — 800 непрерывных байт, линия используется целиком</td><td class="num">заложено в C1</td></tr>
+<tr><td>Регистры</td><td>5 строк блока результата на всю глубину подматрицы</td><td class="num">≈ 1,24–1,34× (FMA 1,41×)</td></tr>
+<tr class="hl"><td>L2 и L1d</td><td>подматрицы по формуле задания на обоих уровнях</td><td class="num">≈ 1,19–1,32× (FMA 1,56×)</td></tr>
+</tbody>
+</table>
+
+<p>На x86 картина другая. Там L2 — сотни килобайт, а пропускная способность памяти на ядро
+заметно ниже, поэтому прокачка 45 ГБ стала бы узким местом, и сокращение трафика почти в 20 раз
+напрямую превратилось бы во время.</p>
+</section>
+
+<section class="sec">
+<h2><span class="num">9</span>Вопросы на защиту</h2>
+
+<div class="qa"><div class="q">Почему матрица матриц сохранена?</div>
+<div class="a">В задании строка «матрицу матриц можно удалить» зачёркнута. Блочная структура лабораторной
+№1 сохранена полностью, а оптимизация под кэш строится поверх неё — по индексам блоков.</div></div>
+
+<div class="qa"><div class="q">Что такое подматрица и чем она отличается от блока?</div>
+<div class="a">Блок — матрица 10 × 10 из лабораторной №1, элемент матрицы матриц. Подматрица — прямоугольник
+из целых блоков, который держится в кэше: подматрица B — 48 × 128 блоков, 4,9 МБ. В формуле задания
+она названа блоком; здесь это слово занято.</div></div>
+
+<div class="qa"><div class="q">В лабораторной №1 был порядок i → k → j, почему у C1 i → j → k?</div>
+<div class="a">Задание требует версию только с векторизацией, а i → k → j — уже оптимизация под кэш: при нём
+B читается подряд. Поэтому в C1 ядро то же, а порядок исходный. C2 решает ту же проблему другим
+способом — подматрицами в кэше.</div></div>
+
+<div class="qa"><div class="q">Почему C1 медленнее, чем SSE2-версия в выводе лабораторной №1?</div>
+<div class="a">Ядро то же, другой порядок блоков: 17,9–21,4 GFLOP/s в i → j → k против 31,2 в i → k → j. В
+порядке i → j → k соседние блоки B лежат на разных страницах, и ядро часть времени ждёт память.</div></div>
+
+<div class="qa"><div class="q">Насколько C2 быстрее самой программы лабораторной №1?</div>
+<div class="a">Без FMA — на её уровне, 0,98–1,07×: на одном ядре обе упираются в арифметику, только разными
+путями. С FMA C2 быстрее того же ядра в порядке лабораторной №1 в 1,34–1,38 раза.</div></div>
+
+<div class="qa"><div class="q">Откуда выигрыш C2 над C1?</div>
+<div class="a">Из двух частей, измеренных отдельно: регистры — около 1,24–1,34×, подматрицы — около
+1,19–1,32× (с FMA 1,41× и 1,56×). C2 без подматриц запускается командой
+<code>LAB2_DEPTH=384 LAB2_WIDTH=384 make run</code>.</div></div>
+
+<div class="qa"><div class="q">Почему векторизация здесь 1,35–1,59×, а в лабораторной №1 — 1,82×?</div>
+<div class="a">В порядке i → j → k обе версии часть времени ждут блоки B. Векторизация вдвое сокращает
+арифметику (≈ 5,8 → 2,9 с), но не ожидание памяти (≈ 2,8 с у обеих), поэтому общий выигрыш меньше.</div></div>
+
+<div class="qa"><div class="q">Зачем C0, если в задании её нет?</div>
+<div class="a">Чтобы разделить вклад двух лабораторных: C1 / C0 — векторизация (1,35–1,59×), C2 / C1 —
+оптимизация под кэш (1,56–1,71×), C2 / C0 — обе вместе (2,32–2,61×). C0 — то же простое ядро
+лабораторной №1, собранное без векторизации, в том же порядке, что C1.</div></div>
+
+<div class="qa"><div class="q">Откуда формула и где у вас L3?</div>
+<div class="a">В уровне кэша должны уместиться три подматрицы — от A, B и C, — с запасом 10 %. L3 у Apple
+silicon нет; его роль играет L2 производительного кластера, 16 МБ. Формула применена дважды: к L2
+(ширина подматрицы B, 128 блоков) и к L1d (глубина, 48 блоков).</div></div>
+
+<div class="qa"><div class="q">Какая подматрица остаётся неизменной?</div>
+<div class="a">Подматрица B, 48 × 128 блоков. Пока мимо неё не пройдут все 384 строки блоков A, программа не
+переходит к следующей.</div></div>
+
+<div class="qa"><div class="q">Как выполнена кратность ширины 64 байтам в блочной матрице?</div>
+<div class="a">Ширины подматриц кратны 8 блокам: 640 байт ширины как матрица и 6400 подряд идущих байт в
+памяти — оба числа кратны и 64, и 128, линии кэша M5. Ширины — 48 блоков (3840 байт) и 128 блоков
+(10 240 байт).</div></div>
+
+<div class="qa"><div class="q">В чём преимущество оптимизации под кэш — в цифрах?</div>
+<div class="a">По времени: 1,56–1,71× к C1, с FMA — 2,14×. По трафику к памяти: почти в 20 раз меньше,
+около 45,7 → 2,4 ГБ. Цена промаха на этой машине измерена: загрузка из памяти в 127 раз дороже,
+чем из L1.</div></div>
+
+<div class="qa"><div class="q">Почему C2 не быстрее 33 GFLOP/s без FMA?</div>
+<div class="a">Это потолок арифметики одного ядра для раздельных умножения и сложения: форма подматрицы на
+скорость не влияет, а с FMA, где на операцию нужна одна инструкция, C2 сразу выходит на 57–59.</div></div>
+
+<div class="qa"><div class="q">Почему выигрыш от кэша не на порядок?</div>
+<div class="a">Порядок величины получается на плоской матрице, где C1 читает B по столбцам и из каждой
+128-байтной линии берёт 16 байт. Матрица матриц устранила это ещё в лабораторной №1: каждый блок —
+800 непрерывных байт, линия используется целиком в любом порядке обхода.</div></div>
+
+<div class="qa"><div class="q">Почему данные случайные, а не целые?</div>
+<div class="a">На целых числах суммы точны в любом порядке, и проверка ничего не доказывает: суммирование
+по <em>k</em> в обратном порядке даёт на них ноль расхождений. На случайных дробных расходятся 95,7 %
+элементов. Программа работает на случайных данных, и все версии совпадают с C1 побитово.</div></div>
+
+<div class="qa"><div class="q">Зачем 25 аккумуляторов?</div>
+<div class="a">Пять строк блока результата остаются в регистрах на всю глубину подматрицы — 48 произведений
+блоков подряд, — и C загружается и сохраняется один раз на подматрицу. На каждом шаге строка B,
+загруженная в регистры, служит пяти строкам A. 31 из 32 регистров NEON, сбросов на стек нет.</div></div>
+
+<div class="qa"><div class="q">Почему не упаковываете B, как в GotoBLAS?</div>
+<div class="a">В блочной матрице каждый блок и так лежит подряд. Упаковку проверяли — выигрыша в пределах
+шума не было. Без копирования код проще, и ничего не переставляется.</div></div>
+
+<h3>Источники</h3>
+<ul>
+<li>U. Drepper. <em>What Every Programmer Should Know About Memory</em>, 2007. — §6.2.1: подзадачи под кэш и переиспользование загруженного; §6.3.1: аппаратная предвыборка (8–16 потоков, не пересекает границ страниц).</li>
+<li>K. Goto, R. van de Geijn. <em>Anatomy of High-Performance Matrix Multiplication</em>. — многоуровневая блокировка, результат в регистрах.</li>
+<li>A. Krivutsenko. <em>GotoBLAS — Anatomy of a Fast Matrix Multiplication</em>, TU München, 2008.</li>
+<li>Intel. <em>AP-930: Streaming SIMD Extensions — Matrix Multiplication</em>, 1999. — схема broadcast-and-accumulate из лабораторной №1.</li>
+</ul>
+</section>
+
+</body>
+</html>

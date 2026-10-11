@@ -226,11 +226,11 @@ pre .k{color:#0b5fa5; font-weight:600}
 
   <rect x="120" y="42" width="240" height="30" fill="#2b86bd"/>
   <text x="240" y="62" text-anchor="middle" font-size="11" fill="#fff" font-weight="700">кэш L1</text>
-  <text x="374" y="62" font-size="10" fill="#5d6e7e">~3 такта · 64 КБ</text>
+  <text x="374" y="62" font-size="10" fill="#5d6e7e">~3 такта · 128 КБ</text>
 
   <rect x="90" y="76" width="300" height="30" fill="#6bacd2"/>
   <text x="240" y="96" text-anchor="middle" font-size="11" fill="#fff" font-weight="700">кэш L2</text>
-  <text x="404" y="96" font-size="10" fill="#5d6e7e">~15 тактов · 6 МБ</text>
+  <text x="404" y="96" font-size="10" fill="#5d6e7e">~15 тактов · 16 МБ</text>
 
   <rect x="40" y="110" width="400" height="32" fill="#c6dced"/>
   <text x="240" y="131" text-anchor="middle" font-size="11" fill="#16202b" font-weight="700">оперативная память</text>
@@ -307,8 +307,8 @@ pre .k{color:#0b5fa5; font-weight:600}
 миллионы раз, мы берём <strong>один маленький блок 10 × 10 и обсчитываем его целиком</strong>, пока
 он лежит в кэше.</p>
 
-<p>Блок 10 × 10 из <code>double</code> — это всего 800 байт. Кэш L1 — 64 000 байт. Три блока (два
-исходных и результат) занимают 2400 байт: помещаются с запасом в двадцать семь раз. Пока мы считаем
+<p>Блок 10 × 10 из <code>double</code> — это всего 800 байт. Кэш L1 — 128 КБ. Три блока (два
+исходных и результат) занимают 2400 байт: помещаются с запасом более чем в пятьдесят раз. Пока мы считаем
 блок, <strong>на «склад» ходить вообще не нужно</strong>.</p>
 
 <p>И ещё одна хитрость: мы храним блоки в памяти <strong>подряд, каждый целиком</strong>. Тогда
@@ -482,7 +482,7 @@ acc4 = _mm_add_pd(acc4, _mm_mul_pd(a, _mm_loadu_pd(row_b + 8)));</pre>
 <div class="a">В регистр 128 бит влезает 2 числа double против 4 float. Потолок 2× против 4×.</div></div>
 
 <div class="cheat"><div class="q">Зачем блоки?</div>
-<div class="a">Блок 800 байт помещается в кэш L1 (64 КБ) с запасом. Пока считаем блок, в медленную
+<div class="a">Блок 800 байт помещается в кэш L1 (128 КБ) с запасом. Пока считаем блок, в медленную
 память не ходим вообще.</div></div>
 
 <div class="cheat"><div class="q">Почему важен размер кэш-линии?</div>
